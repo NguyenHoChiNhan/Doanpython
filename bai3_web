@@ -1,0 +1,66 @@
+from flask import Flask, request, jsonify, render_template
+import pymysql
+
+# Kết nối tới MySQL (dùng mỗi lần khi cần kết nối)
+def get_connection():
+    return pymysql.connect(
+        host='localhost',
+        user='root',
+        password='123456',
+        database='product_management',
+        charset='utf8mb4',
+        cursorclass=pymysql.cursors.DictCursor
+    )
+
+app = Flask(__name__)
+
+# Trang chủ hiển thị danh sách sản phẩm
+@app.route('/')
+def index():
+    connection = get_connection()
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT * FROM products")
+        products = cursor.fetchall()
+    connection.close()
+    return render_template('index.html', products=products)
+
+# API thêm sản phẩm
+@app.route('/add', methods=['POST'])
+def add():
+    name = request.form['name']
+    price = request.form['price']
+    quantity = request.form['quantity']
+    description = request.form['description']
+    
+    connection = get_connection()
+    with connection.cursor() as cursor:
+        sql = "INSERT INTO products (name, price, quantity, description) VALUES (%s, %s, %s, %s)"
+        cursor.execute(sql, (name, price, quantity, description))
+    connection.commit()
+    
+    # Lấy thông tin sản phẩm vừa thêm
+    new_product = {
+        'id': cursor.lastrowid,
+        'name': name,
+        'price': price,
+        'quantity': quantity,
+        'description': description
+    }
+    connection.close()
+    
+    return jsonify(new_product)
+
+# API xóa sản phẩm
+@app.route('/delete/<int:product_id>', methods=['DELETE'])
+def delete(product_id):
+    connection = get_connection()
+    with connection.cursor() as cursor:
+        sql = "DELETE FROM products WHERE id = %s"
+        cursor.execute(sql, (product_id,))
+    connection.commit()
+    connection.close()
+    
+    return jsonify({'message': 'Xóa sản phẩm thành công!'})
+
+if __name__ == '__main__':
+    app.run(debug=True)
