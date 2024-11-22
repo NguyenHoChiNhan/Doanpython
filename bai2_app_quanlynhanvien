@@ -1,0 +1,94 @@
+import mysql.connector
+
+# Kết nối với cơ sở dữ liệu MySQL
+def connect_db():
+    return mysql.connector.connect(
+        host="localhost",
+        user="root",  # Thay đổi thông tin kết nối nếu cần
+        password="123456",
+        database="employee_db"
+    )
+
+# Thêm nhân viên vào cơ sở dữ liệu
+def add_employee():
+    name = input("Enter employee name: ")
+    position = input("Enter employee position: ")
+    salary = float(input("Enter employee salary: "))
+
+    if not name or not position or salary <= 0:
+        print("All fields are required and salary must be greater than 0.")
+        return
+
+    try:
+        conn = connect_db()
+        cursor = conn.cursor()
+        cursor.execute("INSERT INTO employees (name, position, salary) VALUES (%s, %s, %s)", (name, position, salary))
+        conn.commit()
+        conn.close()
+        print("Employee added successfully")
+    except mysql.connector.Error as err:
+        print(f"Error: {err}")
+
+# Hiển thị danh sách nhân viên
+def display_employees():
+    try:
+        conn = connect_db()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM employees")
+        employees = cursor.fetchall()
+        conn.close()
+
+        if employees:
+            print("\nList of Employees:")
+            for employee in employees:
+                print(f"ID: {employee[0]} - Name: {employee[1]} - Position: {employee[2]} - Salary: {employee[3]}")
+        else:
+            print("No employees found.")
+    except mysql.connector.Error as err:
+        print(f"Error: {err}")
+
+# Xóa nhân viên
+def delete_employee():
+    display_employees()
+    try:
+        employee_id = int(input("Enter the ID of the employee you want to delete: "))
+        conn = connect_db()
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM employees WHERE id = %s", (employee_id,))
+        conn.commit()
+        conn.close()
+
+        if cursor.rowcount > 0:
+            print("Employee deleted successfully")
+        else:
+            print("Employee not found.")
+    except ValueError:
+        print("Invalid ID. Please enter a valid number.")
+    except mysql.connector.Error as err:
+        print(f"Error: {err}")
+
+# Menu cho người dùng
+def menu():
+    while True:
+        print("\nEmployee Management System")
+        print("1. Add Employee")
+        print("2. View Employees")
+        print("3. Delete Employee")
+        print("4. Exit")
+
+        choice = input("Enter your choice: ")
+
+        if choice == "1":
+            add_employee()
+        elif choice == "2":
+            display_employees()
+        elif choice == "3":
+            delete_employee()
+        elif choice == "4":
+            print("Exiting...")
+            break
+        else:
+            print("Invalid choice, please try again.")
+
+if __name__ == "__main__":
+    menu()
